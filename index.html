@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AstroMaths: Mission Control</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<style>
+:root{--bg:#070A13;--purple:#6366F1;--cyan:#06B6D4;--gold:#F59E0B;--green:#10B981;--text:#E5E9F5;--muted:#8B93AD;--glass:rgba(255,255,255,.05);--border:rgba(255,255,255,.12)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 20% 0%,rgba(99,102,241,.18),transparent 55%),radial-gradient(ellipse at 90% 80%,rgba(6,182,212,.12),transparent 50%),var(--bg)}
+#stars{position:fixed;inset:0;z-index:-1}
+.wrap{max-width:1100px;margin:0 auto;padding:20px}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;margin-bottom:20px}
+h1{margin:0;font-size:1.7rem;letter-spacing:.12em;text-transform:uppercase;background:linear-gradient(90deg,var(--cyan),var(--purple));-webkit-background-clip:text;background-clip:text;color:transparent}
+h1 small{display:block;font-size:.65rem;letter-spacing:.35em;-webkit-text-fill-color:var(--muted)}
+.panel{background:var(--glass);border:1px solid var(--border);border-radius:16px;padding:18px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.stats{display:flex;gap:12px;flex-wrap:wrap}
+.stat{padding:10px 16px;text-align:center;min-width:92px}
+.stat b{display:block;font-size:1.3rem}.stat span{font-size:.65rem;letter-spacing:.2em;color:var(--muted);text-transform:uppercase}
+.bar{height:6px;background:rgba(255,255,255,.08);border-radius:9px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--purple));box-shadow:0 0 10px var(--cyan)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+h2{font-size:.8rem;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);margin:0}
+.map{display:grid;gap:14px}
+.sector{border-left:3px solid var(--c)}
+.sector.locked{opacity:.45;filter:grayscale(.7)}
+.sector h3{margin:0;color:var(--c);text-shadow:0 0 12px var(--c)}
+.sector p{margin:4px 0 12px;color:var(--muted);font-size:.85rem}
+.nodes{display:flex;gap:8px;flex-wrap:wrap}
+.node{cursor:pointer;border:1px solid var(--c);color:var(--text);background:rgba(0,0,0,.35);border-radius:999px;padding:8px 14px;font-size:.82rem;font-family:inherit;transition:.2s}
+.node small{color:var(--muted);margin-left:6px}
+.node:hover:not(:disabled){box-shadow:0 0 14px var(--c);transform:translateY(-2px)}
+.node.m{background:var(--green);border-color:var(--green);color:#04130d;font-weight:600}.node.m small{color:#04130d}
+.node:disabled{opacity:.4;cursor:not-allowed;border-style:dashed}
+#terminal{display:none;margin-top:26px;border-color:var(--cyan);box-shadow:0 0 30px rgba(6,182,212,.15)}
+#terminal h3{margin:0;color:var(--cyan)}
+.how{background:rgba(0,0,0,.3);border-left:3px solid var(--purple);padding:12px 16px;margin:14px 0;border-radius:0 10px 10px 0;line-height:1.7}
+.q{font-size:1.3rem;margin:14px 0;line-height:1.7}
+.katex{text-shadow:0 0 10px rgba(6,182,212,.7)}
+input[type=text],input[type=search]{background:rgba(0,0,0,.4);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:10px;font-size:1rem;width:240px;max-width:100%}
+input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+.btn{cursor:pointer;border:1px solid var(--purple);background:rgba(99,102,241,.2);color:var(--text);padding:10px 16px;border-radius:10px;font-family:inherit;font-size:.9rem}
+.btn:hover{box-shadow:0 0 14px var(--purple)}
+.btn.go{border-color:var(--green);background:rgba(16,185,129,.2)}
+#msg{margin-top:12px;min-height:1.4em;font-weight:600}
+#qn{color:var(--gold);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase}
+footer{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.75rem;align-items:center}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="wrap">
+<header>
+  <h1>AstroMaths<small>Mission Control</small></h1>
+  <div class="stats">
+    <div class="panel stat"><b style="color:var(--gold)" id="xp">0</b><span>Total XP</span></div>
+    <div class="panel stat"><b style="color:var(--cyan)" id="streak">0</b><span>Day Streak</span></div>
+    <div class="panel stat"><b style="color:var(--green)" id="mast">0</b><span>Mastered</span></div>
+  </div>
+</header>
+<div class="panel"><span id="rank" style="letter-spacing:.2em;text-transform:uppercase;font-size:.8rem"></span><div class="bar"><i id="prog" style="width:0"></i></div></div>
+
+<div class="row" style="margin:26px 0 12px;justify-content:space-between"><h2>Starmap: Sector Navigation</h2>
+<input type="search" id="search" placeholder="Search activities (e.g. quadratic, Y8, ratio)"></div>
+<div class="map" id="map"></div>
+
+<div class="panel" id="terminal">
+  <div class="row" style="justify-content:space-between"><h3 id="tTitle"></h3><button class="btn" onclick="closeT()">Close</button></div>
+  <div style="color:var(--muted);font-size:.8rem" id="tMeta"></div>
+  <div class="how" id="how"></div>
+  <button class="btn go" id="startBtn" onclick="startQ()">Start Mastery Challenge (10 in a row)</button>
+  <div id="quiz" style="display:none">
+    <div id="qn"></div><div class="q" id="tQ"></div>
+    <div class="row"><input type="text" id="ans" placeholder="Answer (e.g. 5, 7/8, 0.25)" autocomplete="off"><button class="btn" id="sendBtn" onclick="check()">Transmit</button><button class="btn" id="retryBtn" style="display:none" onclick="startQ()">Retry with 10 new questions</button></div>
+  </div>
+  <div id="msg"></div>
+</div>
+
+<footer>
+  <span>Ship Computer Storage:</span>
+  <button class="btn" onclick="exportLog()">Export Flight Log</button>
+  <button class="btn" onclick="$('imp').click()">Import Flight Log</button>
+  <input type="file" id="imp" accept=".json" hidden>
+  <button class="btn" onclick="resetAll()">Reset</button>
+  <span>Progress is saved in this browser only.</span>
+</footer>
+</div>
+
+<script>
+const SECTORS=[
+ {name:"Sector 1: Planetary Base",yrs:"Years 0–6",c:"#10B981"},
+ {name:"Sector 2: Lunar Orbit",yrs:"Years 7–8",c:"#06B6D4"},
+ {name:"Sector 3: Asteroid Belt",yrs:"Years 9–11",c:"#6366F1"},
+ {name:"Sector 4: Deep Space",yrs:"Years 12–13",c:"#F59E0B"},
+ {name:"Sector 5: The Singularity",yrs:"NZMO & IMO",c:"#EC4899"}];
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a,P=a=>a[R(0,a.length-1)];
+const fact=n=>n<2?1:n*fact(n-1),C=(n,k)=>fact(n)/fact(k)/fact(n-k);
+const mp=(b,e,m)=>{let r=1;for(let i=0;i<e;i++)r=r*b%m;return r};
+const sg=n=>n<0?`(${n})`:n,sx=n=>(n<0?"-":"+")+Math.abs(n);
+const T=[],add=(s,y,t,d,g)=>T.push({s,y,t,d,g});
+// ---- Sector 1
+add(1,"Y0-2","Place Value","Every digit has a value that depends on its place. In 352 the 5 is in the tens place, so it is worth $5\\times10=50$. Find which place the digit is in, then multiply the digit by 1, 10 or 100.",()=>{const n=R(100,999),d=P([1,10,100]);return[`What is the value of the ${{1:"ones",10:"tens",100:"hundreds"}[d]} digit in ${n}?`,Math.floor(n/d)%10*d]});
+add(1,"Y1-3","Add & Subtract","Line digits up by place value and work from the ones column. Carry when a column makes 10 or more, borrow when you can't take away. Example: $345+478$: ones $5+8=13$ (write 3, carry 1), tens $4+7+1=12$ (write 2, carry 1), hundreds $3+4+1=8$, so $823$.",()=>{const a=R(120,950),b=R(15,99);return P([0,1])?[`${a} + ${b}`,a+b]:[`${a} − ${b}`,a-b]});
+add(1,"Y3-4","Times Tables & Division","Learn your tables by heart. Division is multiplication backwards: $42\\div6=7$ because $6\\times7=42$. Ask yourself: what times the divisor gives the number?",()=>{const a=R(2,12),b=R(2,12);return P([0,1])?[`${a} × ${b}`,a*b]:[`${a*b} ÷ ${a}`,b]});
+add(1,"Y4-5","Fractions of Amounts","To find $\\frac{n}{d}$ of an amount, divide by the bottom number $d$, then multiply by the top number $n$. Example: $\\frac34$ of 20: $20\\div4=5$, then $5\\times3=15$.",()=>{const d=P([2,3,4,5,8,10]),n=R(1,d-1),k=R(2,9);return[`Find $\\frac{${n}}{${d}}$ of ${k*d}.`,n*k]});
+add(1,"Y5-6","Decimals","Line up the decimal points, then add or subtract as with whole numbers. Example: $2.4+1.7=4.1$. For subtraction, take the smaller from the larger.",()=>{const a=R(11,99)/10,b=R(11,99)/10;return P([0,1])?[`${a} + ${b}`,Math.round((a+b)*10)/10]:[`${Math.max(a,b)} − ${Math.min(a,b)}`,Math.round(Math.abs(a-b)*10)/10]});
+add(1,"Y4-6","Area & Perimeter","For a rectangle, area $=l\\times w$ (space inside) and perimeter $=2(l+w)$ (distance around). Example: 5 by 3: area 15, perimeter 16.",()=>{const l=R(3,20),w=R(2,15);return P([0,1])?[`Area of a ${l} by ${w} rectangle?`,l*w]:[`Perimeter of a ${l} by ${w} rectangle?`,2*(l+w)]});
+add(1,"Y5-6","Angles","Angles in a triangle add to $180^\\circ$; angles on a straight line also add to $180^\\circ$. Add the known angles and subtract from 180.",()=>{const a=R(20,80),b=R(20,80);return[`A triangle has angles ${a}° and ${b}°. Find the third angle in degrees.`,180-a-b]});
+add(1,"Y6","Order of Operations","Use BEDMAS: Brackets, Exponents, Divide/Multiply, then Add/Subtract. Example: $2+3\\times4=2+12=14$, but $(2+3)\\times4=20$.",()=>{const a=R(2,12),b=R(2,9),c=R(2,9);return P([0,1])?[`${a} + ${b} × ${c}`,a+b*c]:[`(${a} + ${b}) × ${c}`,(a+b)*c]});
+add(1,"Y6","Percentages","Build percentages from easy ones: $10\\%$ is $\\div10$, $50\\%$ is $\\div2$, $25\\%$ is $\\div4$, $5\\%$ is half of $10\\%$. Example: $20\\%$ of 80: $10\\%=8$, so $20\\%=16$.",()=>{const p=P([10,20,25,50,5]),n=R(2,20)*20;return[`Find ${p}% of ${n}.`,p*n/100]});
+add(1,"Y3-5","Measurement Units","To go to a smaller unit, multiply: m→cm ×100, km→m ×1000, kg→g ×1000, L→mL ×1000. Example: $3\\text{ km}=3000\\text{ m}$.",()=>{const n=R(2,99),[u,v,f]=P([["m","cm",100],["km","m",1000],["kg","g",1000],["L","mL",1000]]);return[`${n} ${u} = ? ${v}`,n*f]});
+// ---- Sector 2
+add(2,"Y7","Integers","Adding a negative moves you down the number line: $5+(-8)=-3$. Subtracting a negative is the same as adding: $4-(-3)=7$.",()=>{const a=R(-20,20),b=R(-20,20);return P([0,1])?[`${a} + ${sg(b)}`,a+b]:[`${a} − ${sg(b)}`,a-b]});
+add(2,"Y7","Ratios","Add the ratio parts, divide the total by that sum to find one part, then multiply. Example: share 40 in $2:3$: 5 parts, one part is 8, so shares are 16 and 24.",()=>{const a=R(1,6),b=R(a+1,9),k=R(2,12);return[`Share ${(a+b)*k} in the ratio ${a}:${b}. How much is the larger share?`,b*k]});
+add(2,"Y8","Percentage Change","For a discount of $d\\%$: new price $=\\text{old}\\times\\frac{100-d}{100}$. Example: 20% off 50 gives $50\\times0.8=40$.",()=>{const p=R(2,20)*20,d=P([10,20,25,50]);return[`An item costs ${p} dollars and is reduced by ${d}%. What is the sale price in dollars?`,p*(100-d)/100]});
+add(2,"Y7-8","Linear Equations","Undo operations in reverse order: subtract the constant, then divide by the coefficient. Example: $3x+7=25\\Rightarrow3x=18\\Rightarrow x=6$.",()=>{const x=R(-5,12),a=R(2,9),b=R(1,20);return[`Solve $${a}x+${b}=${a*x+b}$.`,x]});
+add(2,"Y7-8","Expressions & Substitution","Replace each letter with its value, then follow BEDMAS. If $a=2$, $b=5$ then $3a+b=6+5=11$.",()=>{const a=R(1,9),b=R(1,9),p=R(2,6),q=R(2,6);return[`If $a=${a}$ and $b=${b}$, find $${p}a+${q}b$.`,p*a+q*b]});
+add(2,"Y8","Area of Triangles","Area $=\\frac12\\times\\text{base}\\times\\text{height}$, where the height is perpendicular to the base. Example: base 6, height 4: $\\frac12\\times24=12$.",()=>{const b=R(3,20),h=2*R(2,12);return[`A triangle has base ${b} and height ${h}. Find its area.`,b*h/2]});
+add(2,"Y7-8","Mean","Mean $=\\frac{\\text{sum of values}}{\\text{number of values}}$. Example: 2, 4, 9 has sum 15, so mean $=5$.",()=>{const m=R(5,40),a=R(1,4),b=R(1,4),n=[m+a,m+b,m-a,m-b,m].sort(()=>Math.random()-.5);return[`Find the mean of ${n.join(", ")}.`,m]});
+add(2,"Y7-8","Simple Probability","$P=\\frac{\\text{favourable outcomes}}{\\text{total outcomes}}$, always between 0 and 1. Example: 3 red in 10 counters gives $\\frac{3}{10}$. Give a fraction or decimal.",()=>{const r=R(1,9),b=R(1,9);return[`A bag has ${r} red and ${b} blue counters. What is the probability of picking red?`,r/(r+b)]});
+add(2,"Y8-9","Pythagoras","In a right triangle $a^2+b^2=c^2$, where $c$ is the longest side. To find a short side, rearrange: $b^2=c^2-a^2$. Example: 3, 4 gives $c=5$.",()=>{const[a,b]=P([[3,4],[5,12],[8,15],[7,24],[6,8]]),k=R(1,5),h=Math.hypot(a,b);return P([0,1])?[`A right triangle has shorter sides ${a*k} and ${b*k}. Find the hypotenuse.`,h*k]:[`A right triangle has hypotenuse ${h*k} and one side ${a*k}. Find the other side.`,b*k]});
+// ---- Sector 3
+add(3,"Y9","Expanding Brackets","Multiply every term in the first bracket by every term in the second: $(x+a)(x+b)=x^2+(a+b)x+ab$. Example: $(x+2)(x+3)=x^2+5x+6$.",()=>{const a=R(-9,9),b=R(-9,9);return P([0,1])?[`When $(x${sx(a)})(x${sx(b)})$ is expanded, what is the coefficient of $x$?`,a+b]:[`When $(x${sx(a)})(x${sx(b)})$ is expanded, what is the constant term?`,a*b]});
+add(3,"Y10","Quadratic Equations","Factorise: find two numbers that multiply to the constant and add to the middle coefficient. Then set each bracket to zero. Example: $x^2-5x+6=(x-2)(x-3)=0$ so $x=2$ or $3$.",()=>{const p=R(-6,9),q=p+R(1,8);return[`Solve $x^2${sx(-(p+q))}x${sx(p*q)}=0$. Enter the larger solution.`,q]});
+add(3,"Y10","Simultaneous Equations","Add or subtract the two equations to eliminate one variable, solve for the other, then substitute back. Example: $x+y=7$ and $x-y=1$ add to $2x=8$, so $x=4$.",()=>{const x=R(1,9),y=R(1,9);return[`$x+y=${x+y}$ and $x-y=${x-y}$. Find $x$.`,x]});
+add(3,"Y9-10","Gradient","Gradient $m=\\frac{y_2-y_1}{x_2-x_1}$ (rise over run). Example: $(1,2)$ and $(3,8)$: $\\frac{6}{2}=3$.",()=>{const m=R(-5,6),x=R(-4,4),y=R(-5,5),d=R(1,4);return[`Find the gradient of the line through $(${x},${y})$ and $(${x+d},${y+m*d})$.`,m]});
+add(3,"Y10-11","Trigonometry","SOH CAH TOA: $\\sin\\theta=\\frac{O}{H}$, $\\cos\\theta=\\frac{A}{H}$, $\\tan\\theta=\\frac{O}{A}$. Exact values: $\\sin30^\\circ=\\frac12$ and $\\cos60^\\circ=\\frac12$.",()=>{const h=2*R(2,30);return P([0,1])?[`Hypotenuse ${h}, angle 30°. Find the opposite side.`,h/2]:[`Hypotenuse ${h}, angle 60°. Find the adjacent side.`,h/2]});
+add(3,"Y10-11","Indices","Same base: add powers when multiplying, subtract when dividing. $a^m\\times a^n=a^{m+n}$ and $a^m\\div a^n=a^{m-n}$. Example: $2^3\\times2^2=2^5=32$.",()=>{const b=P([2,3,5]),m=R(1,4),n=R(1,3);return P([0,1])?[`Evaluate $${b}^{${m}}\\times${b}^{${n}}$.`,b**(m+n)]:[`Evaluate $${b}^{${m+n}}\\div${b}^{${n}}$.`,b**m]});
+add(3,"Y9-10","Number Patterns","A linear pattern has a common difference $d$. Term $n$ is $a_n=a_1+(n-1)d$. Example: 3, 7, 11, … has $d=4$, so term 10 is $3+9\\times4=39$.",()=>{const a=R(1,20),d=R(2,9),n=R(10,40);return[`Sequence: ${a}, ${a+d}, ${a+2*d}, … Find term number ${n}.`,a+(n-1)*d]});
+add(3,"Y11","Compound Interest","$A=P\\left(1+\\frac{r}{100}\\right)^t$. Multiply by $(1+r/100)$ once per year. Example: 1000 at 10% for 2 years: $1000\\times1.1^2=1210$.",()=>{const p=R(1,9)*1000,r=P([10,20]),t=R(1,3);return[`${p} dollars earns ${r}% compound interest for ${t} year${t>1?"s":""}. Find the final amount.`,Math.round(p*(1+r/100)**t)]});
+add(3,"Y10-11","Volume of Cylinders","$V=\\pi r^2h$: area of the circular base times the height. Example: $r=2,h=5$ gives $V=20\\pi$, so $k=20$.",()=>{const r=R(2,9),h=R(2,15);return[`A cylinder has radius ${r} and height ${h}. Its volume is $k\\pi$. Find $k$.`,r*r*h]});
+add(3,"Y11","Circle Theorems","The angle at the centre is double the angle at the circumference when both stand on the same arc. Example: 35° at the edge means 70° at the centre.",()=>{const a=R(15,80);return[`The angle at the circumference is ${a}°. Find the angle at the centre on the same arc.`,2*a]});
+add(3,"Y11","Independent Probability","For independent events multiply: $P(A\\text{ and }B)=P(A)\\times P(B)$. Example: two heads in a row is $\\frac12\\times\\frac12=\\frac14$. Give a fraction or decimal.",()=>{if(P([0,1])){const n=R(2,5);return[`A fair coin is tossed ${n} times. What is the probability of all heads?`,1/2**n]}const a=R(2,9),b=R(2,9);return[`Independent events have P(A) = ${a/10} and P(B) = ${b/10}. Find P(A and B).`,a*b/100]});
+add(3,"Y9-10","Standard Form","Write numbers as $a\\times10^k$ with $1\\le a<10$. $k$ is how many places the decimal point moved. Example: $45000=4.5\\times10^4$.",()=>{const j=R(0,6),m=R(11,99);return[`${m*10**j} = a × 10^k in standard form. Find k.`,j+1]});
+// ---- Sector 4
+add(4,"Y12-13","Differentiation","Power rule: $\\frac{d}{dx}(ax^n)=nax^{n-1}$. Differentiate, then substitute the $x$-value to get the gradient. Example: $f=3x^2$, $f'=6x$, $f'(2)=12$.",()=>{const a=R(1,6),n=R(2,5),k=R(1,4);return[`If $f(x)=${a}x^{${n}}$, find $f'(${k})$.`,a*n*k**(n-1)]});
+add(4,"Y13","Integration","$\\int ax^n\\,dx=\\frac{a}{n+1}x^{n+1}$. For a definite integral, evaluate at the upper limit minus the lower limit. Example: $\\int_0^2 3x^2dx=[x^3]_0^2=8$.",()=>{const n=R(1,3),m=R(1,5),k=R(1,4);return[`Evaluate $\\int_0^{${k}} ${(n+1)*m}x^{${n}}\\,dx$.`,m*k**(n+1)]});
+add(4,"Y13","Complex Numbers","$i^2=-1$. Multiply like brackets: $(a+bi)(c+di)=(ac-bd)+(ad+bc)i$. Example: $(1+2i)(3+i)=1+7i$.",()=>{const a=R(1,6),b=R(1,6),c=R(1,6),d=R(1,6),im=P([0,1]);return[`Find the ${im?"imaginary":"real"} part of $(${a}+${b}i)(${c}+${d}i)$.`,im?a*d+b*c:a*c-b*d]});
+add(4,"Y12","Logarithms","$\\log_b x$ asks: what power of $b$ gives $x$? $\\log_b b^n=n$ and $\\log_bx+\\log_by=\\log_b(xy)$. Example: $\\log_28=3$.",()=>{const b=P([2,3,5]),m=R(1,4),n=R(1,4);return[`Evaluate $\\log_{${b}} ${b**m}+\\log_{${b}} ${b**n}$.`,m+n]});
+add(4,"Y12-13","Expected Value","$E(X)=\\sum x\\cdot P(X=x)$: multiply each value by its probability and add. Example: values 1, 2 with probabilities 0.4, 0.6 give $0.4+1.2=1.6$.",()=>{const a=R(1,4),b=R(1,5),c=10-a-b;return[`X takes values 1, 2, 3 with probabilities ${a/10}, ${b/10}, ${c/10}. Find E(X).`,(a+2*b+3*c)/10]});
+add(4,"Y12","Arithmetic Series","$S_n=\\frac n2\\,(2a+(n-1)d)$. Example: 2, 5, 8, … first 4 terms: $2\\times(4+9)=26$.",()=>{const a=R(1,9),d=R(1,6),n=2*R(3,9);return[`Find the sum of the first ${n} terms of ${a}, ${a+d}, ${a+2*d}, …`,n/2*(2*a+(n-1)*d)]});
+add(4,"Y13","Geometric Series","If $|r|<1$ the infinite sum is $S_\\infty=\\frac{a}{1-r}$. Example: $4+2+1+\\dots$ has $a=4,r=\\frac12$, so $S_\\infty=8$.",()=>{const m=R(1,9);return P([0,1])?[`Sum to infinity of ${2*m} + ${m} + ${m/2} + …`,4*m]:[`Sum to infinity of ${3*m} + ${m} + ${m}/3 + …`,4.5*m]});
+// ---- Sector 5
+add(5,"NZMO","Modular Arithmetic","Reduce the base mod $m$, then find the cycle of powers. $7^{100}\\bmod5$: $7\\equiv2$, $2^4=16\\equiv1$, and $100=4\\times25$, so the remainder is $1$.",()=>{const b=R(2,9),e=R(10,200),m=P([3,5,7,11]);return[`Find the remainder when ${b}^${e} is divided by ${m}.`,mp(b,e,m)]});
+add(5,"NZMO","Number of Divisors","If $n=p^aq^br^c$, the number of divisors is $(a+1)(b+1)(c+1)$, since each exponent can be 0 up to its maximum. Example: $12=2^2\\cdot3$ has $3\\times2=6$ divisors.",()=>{const a=R(1,6),b=R(1,5),c=R(0,3);return[`How many positive divisors does $2^{${a}}\\cdot3^{${b}}\\cdot5^{${c}}$ have?`,(a+1)*(b+1)*(c+1)]});
+add(5,"NZMO","Combinations","When order doesn't matter, $\\binom nk=\\frac{n!}{k!(n-k)!}$. Handshakes among $n$ people is $\\binom n2$. Example: $\\binom52=10$.",()=>{const n=R(6,14),k=R(2,5);return[`In how many ways can ${k} people be chosen from ${n}?`,C(n,k)]});
+add(5,"NZMO","Arrangements","Arranging $n$ letters where some repeat: $\\frac{n!}{a!\\,b!\\cdots}$ (divide by the factorial of each repeat count). Example: BANANA: $\\frac{6!}{3!\\,2!}=60$.",()=>{const w=P(["BANANA","LEVEL","ALGEBRA","PEPPER","TOOTH","SUCCESS","BALLOON","COOKIE","ANAGRAM","MATHEMATICS"]),c={};for(const l of w)c[l]=(c[l]||0)+1;return[`How many distinct arrangements are there of the letters of ${w}?`,Object.values(c).reduce((a,v)=>a/fact(v),fact(w.length))]});
+add(5,"IMO","Vieta's Formulas","For roots $a,b$ of $x^2-sx+p=0$: $a+b=s$ and $ab=p$. Symmetric expressions follow: $a^2+b^2=(a+b)^2-2ab$.",()=>{const s=R(2,12),p=R(-8,15);return[`If $a+b=${s}$ and $ab=${p}$, find $a^2+b^2$.`,s*s-2*p]});
+add(5,"NZMO","Last Digits","The units digit is the remainder mod 10, and powers cycle in length 4 or less. Example: $7^1,7^2,7^3,7^4$ end in 7, 9, 3, 1, then repeat.",()=>{const b=R(2,19),e=R(5,100);return[`Find the units digit of ${b}^${e}.`,mp(b,e,10)]});
+add(5,"NZMO","Polygon Angles","Exterior angles of a convex polygon sum to $360^\\circ$, so a regular $n$-gon has exterior angle $\\frac{360}{n}$. Example: hexagon: $60^\\circ$.",()=>{const n=P([5,6,8,9,10,12,15,18,20,24,30,36,40,45,60,72]);return P([0,1])?[`A regular polygon has ${n} sides. Find one exterior angle in degrees.`,360/n]:[`A regular polygon has exterior angle ${360/n}°. How many sides does it have?`,n]});
+add(5,"IMO","AM-GM Inequality","For positive $u,v$: $\\frac{u+v}{2}\\ge\\sqrt{uv}$, with equality when $u=v$. So $cx+\\frac{cm^2}{x}\\ge2\\sqrt{c^2m^2}=2cm$.",()=>{const c=R(1,5),m=R(2,12);return[`Find the minimum of $${c}x+\\frac{${c*m*m}}{x}$ for $x>0$.`,2*c*m]});
+add(5,"IMO","Heron's Formula","With semi-perimeter $s=\\frac{a+b+c}{2}$, area $=\\sqrt{s(s-a)(s-b)(s-c)}$. Example: 5, 12, 13: $s=15$, area $=\\sqrt{15\\cdot10\\cdot3\\cdot2}=30$.",()=>{const[a,b,c,A]=P([[13,14,15,84],[5,12,13,30],[17,25,28,210],[9,10,17,36],[7,15,20,42]]),k=R(1,3);return[`A triangle has sides ${a*k}, ${b*k}, ${c*k}. Find its area.`,A*k*k]});
+
+// ---- Engine
+const KEY="astromaths_v2",$=id=>document.getElementById(id);
+let S=load(),cur=null,Q=null;const pools={};
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.mastered)return d}catch(e){}return{xp:0,streak:0,last:"",mastered:{}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const cnt=s=>T.filter(t=>t.s===s&&S.mastered[t.t]).length;
+const open=s=>s===1||cnt(s-1)>=3;
+function typeset(){if(window.renderMathInElement)renderMathInElement($("terminal"),{delimiters:[{left:"$",right:"$",display:false}],throwOnError:false})}
+function render(){
+  const f=$("search").value.trim().toLowerCase(),n=Object.keys(S.mastered).length;
+  $("xp").textContent=S.xp;$("streak").textContent=S.streak;$("mast").textContent=n+"/"+T.length;
+  const rk=["Cadet","Navigator","Pilot","Commander","Admiral","Singularity Master"];
+  $("rank").textContent="Rank: "+rk[Math.min(5,Math.floor(n/8))]+" · "+S.xp+" XP";$("prog").style.width=n/T.length*100+"%";
+  let h="";SECTORS.forEach((sec,i)=>{const s=i+1,o=open(s);
+    const ts=T.filter(t=>t.s===s&&(!f||(t.t+" "+t.y+" "+t.d+" "+sec.name+" "+sec.yrs).toLowerCase().includes(f)));
+    if(!ts.length)return;
+    h+=`<div class="panel sector ${o?"":"locked"}" style="--c:${sec.c}"><h3>${o?"":"🔒 "}${sec.name}</h3><p>${sec.yrs} · ${cnt(s)}/${T.filter(t=>t.s===s).length} mastered${o?"":" · Master 3 topics in the previous sector to unlock"}</p><div class="nodes">`+
+    ts.map(t=>`<button class="node ${S.mastered[t.t]?"m":""}" ${o?"":"disabled"} onclick="openT(${T.indexOf(t)})">${S.mastered[t.t]?"★ ":""}${t.t}<small>${t.y}</small></button>`).join("")+`</div></div>`});
+  $("map").innerHTML=h||'<div class="panel">No activities match your search.</div>';
+}
+function openT(i){cur=T[i];Q=null;$("terminal").style.display="block";$("tTitle").textContent=cur.t;
+  $("tMeta").textContent=SECTORS[cur.s-1].name+" · "+cur.y+(S.mastered[cur.t]?" · MASTERED":"");
+  $("how").textContent="How to: "+cur.d;$("startBtn").style.display="";$("quiz").style.display="none";$("msg").textContent="";
+  typeset();$("terminal").scrollIntoView({behavior:"smooth"})}
+function closeT(){$("terminal").style.display="none";cur=null;Q=null}
+function pool(t){if(pools[t.t])return pools[t.t];const m=new Map();for(let i=0;i<1500&&m.size<50;i++){const x=t.g();m.set(x[0],x)}return pools[t.t]=[...m.values()]}
+function startQ(){if(!cur)return;const p=pool(cur).slice().sort(()=>Math.random()-.5);Q={qs:p.slice(0,10),i:0};
+  $("startBtn").style.display="none";$("quiz").style.display="block";$("retryBtn").style.display="none";$("sendBtn").style.display="";$("ans").style.display="";$("msg").textContent="";showQ()}
+function showQ(){$("qn").textContent=`Question ${Q.i+1} of ${Q.qs.length} · no mistakes allowed`;$("tQ").textContent=Q.qs[Q.i][0];$("ans").value="";$("ans").focus();typeset()}
+function parse(v){v=v.trim().replace(/\s/g,"");if(/^-?\d+(\.\d+)?\/-?\d+(\.\d+)?$/.test(v)){const[a,b]=v.split("/");return a/b}return v===""?NaN:Number(v)}
+function check(){if(!Q||$("sendBtn").style.display==="none")return;const[,a]=Q.qs[Q.i],v=parse($("ans").value),m=$("msg");
+  if(isNaN(v)){m.style.color="#F87171";m.textContent="Enter a number or fraction.";return}
+  if(Math.abs(v-a)>0.0051){m.style.color="#F87171";m.textContent=`Incorrect. The answer was ${Math.round(a*1000)/1000}. Review the lesson above, then retry with 10 new questions.`;
+    $("sendBtn").style.display="none";$("ans").style.display="none";$("retryBtn").style.display="";return}
+  m.textContent="";Q.i++;
+  if(Q.i<Q.qs.length)return showQ();
+  $("quiz").style.display="none";m.style.color="var(--green)";
+  if(!S.mastered[cur.t]){S.mastered[cur.t]=new Date().toISOString();S.xp+=100;m.textContent="🏆 Topic mastered! +100 XP"}else m.textContent="🏆 Passed again. Already mastered.";
+  streak();save();render();$("tMeta").textContent+=" · MASTERED";Q=null}
+function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function streak(){const n=new Date(),t=ymd(n);if(S.last===t)return;const y=new Date(n);y.setDate(y.getDate()-1);S.streak=S.last===ymd(y)?S.streak+1:1;S.last=t}
+function exportLog(){const b=new Blob([JSON.stringify({app:"AstroMaths",version:2,data:S},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="astromaths-flight-log-"+ymd(new Date())+".json";a.click();URL.revokeObjectURL(a.href)}
+$("imp").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result),d=j.data||j;if(typeof d.xp!=="number"||typeof d.mastered!=="object")throw 0;S={xp:d.xp,streak:d.streak||0,last:d.last||"",mastered:d.mastered};save();render();closeT();alert("Flight log imported.")}catch(x){alert("Invalid flight log file (v1 logs are not compatible).")}};r.readAsText(f);e.target.value=""});
+function resetAll(){if(confirm("Erase all progress on this device?")){S={xp:0,streak:0,last:"",mastered:{}};save();render();closeT()}}
+$("ans").addEventListener("keydown",e=>{if(e.key==="Enter")check()});
+$("search").addEventListener("input",render);
+(function(){const c=$("stars"),x=c.getContext("2d");let st=[];function rs(){c.width=innerWidth;c.height=innerHeight;st=Array.from({length:140},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.3+.2,p:Math.random()*6,col:P(["#fff","#6366F1","#06B6D4","#F59E0B"])}))}
+function f(t){x.clearRect(0,0,c.width,c.height);st.forEach(s=>{x.globalAlpha=.4+.6*Math.abs(Math.sin(t/1500+s.p));x.fillStyle=s.col;x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fill()});requestAnimationFrame(f)}
+addEventListener("resize",rs);rs();requestAnimationFrame(f)})();
+render();
+</script>
+</body>
+</html>
