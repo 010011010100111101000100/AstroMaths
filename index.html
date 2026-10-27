@@ -47,6 +47,7 @@ input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 10px var(--cyan
 .btn.go{border-color:var(--green);background:rgba(16,185,129,.2)}
 #msg{margin-top:12px;min-height:1.4em;font-weight:600}
 #qn{color:var(--gold);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase}
+.fig{text-align:center;margin:10px 0}.fig small{display:block;color:var(--muted)}.ex{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin:8px 0}
 footer{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.75rem;align-items:center}
 </style>
 </head>
@@ -63,11 +64,16 @@ footer{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);f
 </header>
 <div class="panel"><span id="rank" style="letter-spacing:.2em;text-transform:uppercase;font-size:.8rem"></span><div class="bar"><i id="prog" style="width:0"></i></div></div>
 
+<div id="rec" style="margin-top:20px"></div>
 <div class="row" style="margin:26px 0 12px;justify-content:space-between"><h2>Starmap: Sector Navigation</h2>
 <input type="search" id="search" placeholder="Search activities (e.g. quadratic, Y8, ratio)"></div>
 <div class="map" id="map"></div>
 <details class="panel" style="margin-top:20px"><summary style="cursor:pointer;letter-spacing:.2em;text-transform:uppercase;font-size:.8rem;color:var(--muted)">NCEA Achievement Standards map (click a standard to see its activities)</summary><div id="std"></div></details>
 
+<div id="exam" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(7,10,19,.94);align-items:center;justify-content:center;padding:16px;overflow:auto"><div class="panel" style="max-width:620px;width:100%;border-color:var(--gold)">
+<div id="e0"><h3 style="color:var(--gold);margin:0 0 8px">Flight Entrance Exam</h3><p style="line-height:1.6">Welcome, cadet. Answer up to 20 questions (4 per sector) so Mission Control can choose your starting sector. The exam stops early if a sector gets too hard. No calculator needed. Enter numbers or fractions like 7/8. Your result is saved on this device.</p><div class="row"><button class="btn go" onclick="beginE()">Begin Exam</button><button class="btn" onclick="skipE()">Skip (start at Sector 1)</button></div></div>
+<div id="e1" style="display:none"><div id="eqn" style="color:var(--gold);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase"></div><div class="q" id="eq"></div><div class="row"><input type="text" id="eans" placeholder="Answer" autocomplete="off"><button class="btn" onclick="ansE(0)">Submit</button><button class="btn" onclick="ansE(1)">I don't know</button></div></div>
+<div id="e2" style="display:none"></div></div></div>
 <div class="panel" id="terminal">
   <div class="row" style="justify-content:space-between"><h3 id="tTitle"></h3><button class="btn" onclick="closeT()">Close</button></div>
   <div style="color:var(--muted);font-size:.8rem" id="tMeta"></div>
@@ -85,7 +91,7 @@ footer{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);f
   <button class="btn" onclick="exportLog()">Export Flight Log</button>
   <button class="btn" onclick="$('imp').click()">Import Flight Log</button>
   <input type="file" id="imp" accept=".json" hidden>
-  <button class="btn" onclick="resetAll()">Reset</button>
+  <button class="btn" onclick="startExam()">Placement Exam</button><button class="btn" onclick="resetAll()">Reset</button>
   <span>Progress is saved in this browser only.</span><span id="saved"></span>
 </footer>
 </div>
@@ -245,14 +251,27 @@ T.forEach(t=>t.a=t.a||OLD[t.t]||"");
 function renderStd(){const L={1:"NCEA Level 1 (Year 11)",2:"NCEA Level 2 (Year 12)",3:"NCEA Level 3 (Year 13)"};
 $("std").innerHTML=[1,2,3].map(l=>`<h4 style="color:var(--cyan);margin:14px 0 8px">${L[l]}</h4><div class="nodes">`+STD.filter(s=>s[1][0]==l).map(([c,n,ti])=>{const ts=T.filter(t=>t.a.split(" ").includes(c)),m=ts.filter(t=>S.mastered[t.t]).length;return`<button class="node ${ts.length&&m===ts.length?"m":""}" style="--c:#06B6D4" title="${ti}" onclick="byStd('${c}')">${c} · ${n} · ${ti} <small>${m}/${ts.length}</small></button>`}).join("")+"</div>").join("")}
 function byStd(c){$("search").value=c;render();$("map").scrollIntoView({behavior:"smooth"})}
+const INTRO=["Every great mission starts on solid ground. Here you build number sense: how digits, fractions, measurements and shapes work. Everything in later sectors depends on these skills, so aim for accuracy first and speed second, and check each answer makes sense.","In orbit you learn to compare quantities using ratios, percentages and rates, and to use letters for unknown numbers. Think of algebra as a code: each step undoes one operation until the hidden value is revealed.","The asteroid belt is where NCEA begins. You will factorise, solve quadratics, use trigonometry and read graphs. Write every step so you can spot mistakes, and always check an answer by substituting it back into the original problem.","Deep space brings calculus, complex numbers, probability and statistical inference. Many ideas describe change or uncertainty. Learn the rule, then practise recognising which tool a question needs before you calculate.","Olympiad problems reward creativity more than formulas. Try small cases, look for patterns, symmetry and things that never change, and ask why a result is true. If one approach stalls, try another."];
+const sv=b=>`<svg viewBox="0 0 300 200" width="300" style="max-width:100%"><g fill="none" stroke="#06B6D4" stroke-width="2" font-family="sans-serif" font-size="13">${b}</g></svg>`;
+const tx=(x,y,t)=>`<text x="${x}" y="${y}" fill="#E5E9F5" stroke="none">${t}</text>`;
+const FIGS=[
+[/Fraction/,"Fraction bar: 3 of 4 equal parts shaded",()=>sv('<rect x="10" y="40" width="280" height="44"/><rect x="10" y="40" width="210" height="44" fill="#06B6D4" fill-opacity=".35"/><path d="M80 40v44M150 40v44M220 40v44"/>'+tx(70,115,"3/4 of the bar is shaded"))],
+[/Pythag|Triangle Ratios|Trig|Sine/,"Right-angled triangle with its three sides named",()=>sv('<path d="M30 160H230V40Z"/><path d="M218 160v-12h12"/>'+tx(100,182,"adjacent")+tx(236,105,"opposite")+tx(60,88,"hypotenuse")+tx(70,153,"θ"))],
+[/Area|Cuboid|Surface|Prism/,"Rectangle: area = length × width",()=>sv('<rect x="40" y="30" width="220" height="110" fill="#06B6D4" fill-opacity=".15"/>'+tx(125,168,"length")+tx(266,90,"w")+tx(105,92,"area = l × w"))],
+[/Circle|Radian|Cylinder|Cone/,"Circle with radius r",()=>sv('<circle cx="150" cy="90" r="70" fill="#06B6D4" fill-opacity=".12"/><path d="M150 90H220"/><circle cx="150" cy="90" r="3" fill="#06B6D4"/>'+tx(180,84,"r")+tx(60,185,"circumference = 2πr, area = πr²"))],
+[/Coordinate|Gradient|Line|Midpoint|Reflect|Enlarge|Perpendicular|Best Fit|Systems/,"Gradient is rise divided by run",()=>sv('<path d="M20 170H285M40 10V185" stroke-opacity=".5"/><path d="M55 150L265 40"/><circle cx="110" cy="121" r="4" fill="#F59E0B"/><circle cx="210" cy="69" r="4" fill="#F59E0B"/><path d="M110 121H210V69" stroke="#F59E0B" stroke-dasharray="4"/>'+tx(150,138,"run")+tx(216,100,"rise"))],
+[/Quadratic|Stationary|Differentiation|Integration|Techniques|Conic/,"A parabola and its vertex",()=>{let d="";for(let x=-4;x<=4;x+=.5)d+=(d?"L":"M")+(150+x*30)+" "+(30+x*x*8);return sv(`<path d="M20 180H285M150 10V190" stroke-opacity=".4"/><path d="${d}"/><circle cx="150" cy="30" r="4" fill="#F59E0B"/>`+tx(160,26,"vertex"))}],
+[/Integer|Place Value|Add & Subtract|Skip|Rounding|Time|Money|Counting|Series|Sequence|Pattern/,"Number line: jumping forward by 3",()=>{let t="";for(let i=0;i<=10;i++)t+=`<path d="M${20+i*28} 45v10"/>`+tx(16+i*28,75,i);return sv(`<path d="M20 50H300"/>${t}<path d="M76 45Q118 5 160 45" stroke="#F59E0B"/>`+tx(110,22,"+3"))}]];
+const fig=t=>{const f=FIGS.find(x=>x[0].test(t));return f?`<div class="fig">${f[2]()}<small>${f[1]}</small></div>`:""};
+const esc=x=>x.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 // ---- Engine
 const KEY="astromaths_v2",$=id=>document.getElementById(id);
 let S=load(),cur=null,Q=null;const pools={};
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.mastered)return{att:{},best:{},...d}}catch(e){}return{xp:0,streak:0,last:"",mastered:{},att:{},best:{}}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));$("saved").textContent="💾 Progress saved"}catch(e){$("saved").textContent="⚠ Browser storage unavailable: use Export Flight Log to keep your progress"}}
 const cnt=s=>T.filter(t=>t.s===s&&S.mastered[t.t]).length;
-const open=s=>s===1||cnt(s-1)>=3;
-function typeset(){if(window.renderMathInElement)renderMathInElement($("terminal"),{delimiters:[{left:"$",right:"$",display:false}],throwOnError:false})}
+const open=s=>s===1||cnt(s-1)>=3||(S.placed&&s<=S.placed.s);
+function typeset(el){if(window.renderMathInElement)renderMathInElement(el||$("terminal"),{delimiters:[{left:"$",right:"$",display:false}],throwOnError:false})}
 function render(){
   const f=$("search").value.trim().toLowerCase(),n=Object.keys(S.mastered).length;
   $("xp").textContent=S.xp;$("streak").textContent=S.streak;$("mast").textContent=n+"/"+T.length;
@@ -263,11 +282,11 @@ function render(){
     if(!ts.length)return;
     h+=`<div class="panel sector ${o?"":"locked"}" style="--c:${sec.c}"><h3>${o?"":"🔒 "}${sec.name}</h3><p>${sec.yrs} · ${cnt(s)}/${T.filter(t=>t.s===s).length} mastered${o?"":" · Master 3 topics in the previous sector to unlock"}</p><div class="nodes">`+
     ts.map(t=>`<button class="node ${S.mastered[t.t]?"m":""}" ${o?"":"disabled"} onclick="openT(${T.indexOf(t)})">${S.mastered[t.t]?"★ ":""}${t.t}<small>${t.y}</small></button>`).join("")+`</div></div>`});
-  $("map").innerHTML=h||'<div class="panel">No activities match your search.</div>';renderStd();
+  $("map").innerHTML=h||'<div class="panel">No activities match your search.</div>';renderStd();rec();
 }
 function openT(i){cur=T[i];Q=null;$("terminal").style.display="block";$("tTitle").textContent=cur.t;
   $("tMeta").textContent=SECTORS[cur.s-1].name+" · "+cur.y+(cur.a?" · NCEA "+cur.a.split(" ").map(c=>{const x=STD.find(z=>z[0]===c);return"AS"+c+" ("+x[1]+")"}).join(", "):"")+(S.att[cur.t]?" · Attempts: "+S.att[cur.t]+" · Best run: "+(S.best[cur.t]||0)+"/10":"")+(S.mastered[cur.t]?" · MASTERED":"");
-  $("how").textContent="How to: "+cur.d;$("startBtn").style.display="";$("quiz").style.display="none";$("msg").textContent="";
+  $("how").innerHTML=`<p><b style="color:var(--gold)">The big idea.</b> ${INTRO[cur.s-1]}</p><p><b style="color:var(--gold)">How to do it.</b> ${cur.d}</p>${fig(cur.t)}<b style="color:var(--gold)">Worked examples</b> <span style="color:var(--muted);font-size:.8rem">(new ones each time, answers shown)</span><div id="exs"></div><button class="btn" onclick="ex()">Show 2 more examples</button>`;ex();$("startBtn").style.display="";$("quiz").style.display="none";$("msg").textContent="";
   typeset();$("terminal").scrollIntoView({behavior:"smooth"})}
 function closeT(){$("terminal").style.display="none";cur=null;Q=null}
 function pool(t){if(pools[t.t])return pools[t.t];const m=new Map();for(let i=0;i<1500&&m.size<50;i++){const x=t.g();m.set(x[0],x)}return pools[t.t]=[...m.values()]}
@@ -287,14 +306,32 @@ function check(){if(!Q||$("sendBtn").style.display==="none")return;const[,a]=Q.q
 function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function streak(){const n=new Date(),t=ymd(n);if(S.last===t)return;const y=new Date(n);y.setDate(y.getDate()-1);S.streak=S.last===ymd(y)?S.streak+1:1;S.last=t}
 function exportLog(){const b=new Blob([JSON.stringify({app:"AstroMaths",version:2,data:S},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="astromaths-flight-log-"+ymd(new Date())+".json";a.click();URL.revokeObjectURL(a.href)}
-$("imp").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result),d=j.data||j;if(typeof d.xp!=="number"||typeof d.mastered!=="object")throw 0;S={xp:d.xp,streak:d.streak||0,last:d.last||"",mastered:d.mastered,att:d.att||{},best:d.best||{}};save();render();closeT();alert("Flight log imported.")}catch(x){alert("Invalid flight log file (v1 logs are not compatible).")}};r.readAsText(f);e.target.value=""});
-function resetAll(){if(confirm("Erase all progress on this device?")){S={xp:0,streak:0,last:"",mastered:{},att:{},best:{}};save();render();closeT()}}
+$("imp").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result),d=j.data||j;if(typeof d.xp!=="number"||typeof d.mastered!=="object")throw 0;S={xp:d.xp,streak:d.streak||0,last:d.last||"",mastered:d.mastered,att:d.att||{},best:d.best||{},placed:d.placed};save();render();closeT();alert("Flight log imported.")}catch(x){alert("Invalid flight log file (v1 logs are not compatible).")}};r.readAsText(f);e.target.value=""});
+function resetAll(){if(confirm("Erase all progress on this device?")){S={xp:0,streak:0,last:"",mastered:{},att:{},best:{}};save();render();closeT();startExam()}}
 $("ans").addEventListener("keydown",e=>{if(e.key==="Enter")check()});
 $("search").addEventListener("input",render);addEventListener("pagehide",save);
+function ex(){if(!cur)return;$("exs").innerHTML=[0,1].map(()=>{const[q,a]=cur.g();return`<div class="ex">${esc(q)}<br><b style="color:var(--green)">Answer: ${Math.round(a*1000)/1000}</b></div>`}).join("");typeset($("how"))}
+function rec(){const p=S.placed;if(!p){$("rec").innerHTML="";return}const sec=SECTORS[p.s-1],L=[...new Set([...p.weak,...T.filter(t=>t.s===p.s).map(t=>t.t)])].filter(w=>!S.mastered[w]).slice(0,6);
+$("rec").innerHTML=`<div class="panel" style="border-color:var(--gold)"><b style="color:var(--gold)">Recommended start: ${sec.name}</b> (${sec.yrs})${p.sc.length?" · Placement scores: "+p.sc.map((x,i)=>"S"+(i+1)+" "+x+"/4").join(", "):" · Exam skipped"}<br><span style="color:var(--muted);font-size:.85rem">Start with:</span> `+L.map(w=>`<button class="node" style="--c:#F59E0B" onclick="openT(${T.findIndex(t=>t.t===w)})">${w}</button>`).join(" ")+` <button class="btn" onclick="startExam()">Retake exam</button></div>`}
+let X=null;
+function showE(i){["e0","e1","e2"].forEach((e,j)=>$(e).style.display=j===i?"":"none")}
+function startExam(){$("exam").style.display="flex";showE(0)}
+function skipE(){S.placed={s:1,sc:[],weak:[],date:new Date().toISOString()};save();$("exam").style.display="none";render()}
+function beginE(){X={s:1,sc:[],weak:[]};sectorE();showE(1)}
+function sectorE(){X.qs=T.filter(t=>t.s===X.s).sort(()=>Math.random()-.5).slice(0,4).map(t=>({t,q:t.g()}));X.i=0;X.ok=0;askE()}
+function askE(){$("eqn").textContent=`Sector ${X.s} of 5 · question ${X.i+1} of 4`;$("eq").textContent=X.qs[X.i].q[0];$("eans").value="";$("eans").focus();typeset($("exam"))}
+function ansE(skip){const q=X.qs[X.i],v=parse($("eans").value);
+ if(!skip&&isNaN(v)){$("eans").placeholder="Enter a number or fraction";return}
+ if(!skip&&Math.abs(v-q.q[1])<=0.0051)X.ok++;else X.weak.push(q.t.t);
+ if(++X.i<4)return askE();
+ X.sc.push(X.ok);if(X.ok<3||X.s===5)return finishE();X.s++;sectorE()}
+function finishE(){const sec=SECTORS[X.s-1];S.placed={s:X.s,sc:X.sc,weak:[...new Set(X.weak)],date:new Date().toISOString()};save();
+ $("e2").innerHTML=`<h3 style="color:var(--gold);margin:0 0 8px">Exam complete</h3><p style="line-height:1.6">Your starting point is <b>${sec.name}</b> (${sec.yrs}). Scores: ${X.sc.map((x,i)=>"Sector "+(i+1)+": "+x+"/4").join(", ")}. Sectors up to this one are unlocked, and your missed topics are listed as a recommended start. Your result is saved, and you can retake the exam from the footer.</p><button class="btn go" onclick="$('exam').style.display='none';render()">Begin training</button>`;showE(2)}
+$("eans").addEventListener("keydown",e=>{if(e.key==="Enter")ansE(0)});
 (function(){const c=$("stars"),x=c.getContext("2d");let st=[];function rs(){c.width=innerWidth;c.height=innerHeight;st=Array.from({length:140},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.3+.2,p:Math.random()*6,col:P(["#fff","#6366F1","#06B6D4","#F59E0B"])}))}
 function f(t){x.clearRect(0,0,c.width,c.height);st.forEach(s=>{x.globalAlpha=.4+.6*Math.abs(Math.sin(t/1500+s.p));x.fillStyle=s.col;x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fill()});requestAnimationFrame(f)}
 addEventListener("resize",rs);rs();requestAnimationFrame(f)})();
-render();
+render();if(!S.placed)startExam();
 </script>
 </body>
 </html>
