@@ -47,7 +47,7 @@ input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 10px var(--cyan
 .btn.go{border-color:var(--green);background:rgba(16,185,129,.2)}
 #msg{margin-top:12px;min-height:1.4em;font-weight:600}
 #qn{color:var(--gold);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase}
-.fig{text-align:center;margin:10px 0}.fig small{display:block;color:var(--muted)}.ex{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin:8px 0}
+body.rm *{transition:none!important}.fig{text-align:center;margin:10px 0}.fig small{display:block;color:var(--muted)}.ex{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin:8px 0}
 footer{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:.75rem;align-items:center}
 </style>
 </head>
@@ -69,9 +69,10 @@ footer{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);f
 <input type="search" id="search" placeholder="Search activities (e.g. quadratic, Y8, ratio)"></div>
 <div class="map" id="map"></div>
 <details class="panel" style="margin-top:20px"><summary style="cursor:pointer;letter-spacing:.2em;text-transform:uppercase;font-size:.8rem;color:var(--muted)">NCEA Achievement Standards map (click a standard to see its activities)</summary><div id="std"></div></details>
+<details class="panel" style="margin-top:14px"><summary style="cursor:pointer;letter-spacing:.2em;text-transform:uppercase;font-size:.8rem;color:var(--muted)">Mistake Notebook (questions you missed, with answers)</summary><div id="nb"></div></details>
 
 <div id="exam" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(7,10,19,.94);align-items:center;justify-content:center;padding:16px;overflow:auto"><div class="panel" style="max-width:620px;width:100%;border-color:var(--gold)">
-<div id="e0"><h3 style="color:var(--gold);margin:0 0 8px">Flight Entrance Exam</h3><p style="line-height:1.6">Welcome, cadet. Answer up to 20 questions (4 per sector) so Mission Control can choose your starting sector. The exam stops early if a sector gets too hard. No calculator needed. Enter numbers or fractions like 7/8. Your result is saved on this device.</p><div class="row"><button class="btn go" onclick="beginE()">Begin Exam</button><button class="btn" onclick="skipE()">Skip (start at Sector 1)</button></div></div>
+<div id="e0"><h3 style="color:var(--gold);margin:0 0 8px">Flight Entrance Exam</h3><p style="line-height:1.6">Welcome, cadet. This exam walks through every topic on the site from easiest to hardest, one question each. It keeps getting harder, all the way up to IMO level, and only ends when you reach the end or make 3 mistakes (skipping counts as a mistake). Every level you reach unlocks as you go, and your progress saves after every answer so you can stop and resume later. There is no timer. No calculator needed. Enter numbers or fractions like 7/8. Your result is saved on this device.</p><div class="row"><button class="btn go" id="resBtn" style="display:none" onclick="resumeE()">Resume exam</button><button class="btn go" onclick="beginE()">Begin Exam (restart)</button><button class="btn" onclick="skipE()">Skip (start at Sector 1)</button></div></div>
 <div id="e1" style="display:none"><div id="eqn" style="color:var(--gold);font-size:.8rem;letter-spacing:.15em;text-transform:uppercase"></div><div class="q" id="eq"></div><div class="row"><input type="text" id="eans" placeholder="Answer" autocomplete="off"><button class="btn" onclick="ansE(0)">Submit</button><button class="btn" onclick="ansE(1)">I don't know</button></div></div>
 <div id="e2" style="display:none"></div></div></div>
 <div class="panel" id="terminal">
@@ -91,7 +92,7 @@ footer{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);f
   <button class="btn" onclick="exportLog()">Export Flight Log</button>
   <button class="btn" onclick="$('imp').click()">Import Flight Log</button>
   <input type="file" id="imp" accept=".json" hidden>
-  <button class="btn" onclick="startExam()">Placement Exam</button><button class="btn" onclick="resetAll()">Reset</button>
+  <button class="btn" onclick="setPref('fs',-10)">A−</button><button class="btn" onclick="setPref('fs',10)">A+</button><button class="btn" onclick="setPref('rm')">Reduce motion</button><button class="btn" onclick="startExam()">Placement Exam</button><button class="btn" onclick="resetAll()">Reset</button>
   <span>Progress is saved in this browser only.</span><span id="saved"></span>
 </footer>
 </div>
@@ -248,6 +249,9 @@ add(4,"Y13","Systems of Three Equations","Use substitution or elimination. If $x
 const STD="91026|1.1|Apply numeric reasoning in solving problems;91027|1.2|Apply algebraic procedures in solving problems;91028|1.3|Investigate relationships between tables, equations and graphs;91029|1.4|Apply linear algebra in solving problems;91030|1.5|Apply measurement in solving problems;91031|1.6|Apply geometric reasoning in solving problems;91032|1.7|Apply right-angled triangles in solving measurement problems;91033|1.8|Apply knowledge of geometric representations in solving problems;91034|1.9|Apply transformation geometry in solving problems;91035|1.10|Investigate a given multivariate data set using the statistical enquiry cycle;91036|1.11|Investigate bivariate numerical data using the statistical enquiry cycle;91037|1.12|Demonstrate understanding of chance and data;91038|1.13|Investigate a situation involving elements of chance;91256|2.1|Apply co-ordinate geometry methods in solving problems;91257|2.2|Apply graphical methods in solving problems;91258|2.3|Apply sequences and series in solving problems;91259|2.4|Apply trigonometric relationships in solving problems;91260|2.5|Apply network methods in solving problems;91261|2.6|Apply algebraic methods in solving problems;91262|2.7|Apply calculus methods in solving problems;91263|2.8|Design a questionnaire;91264|2.9|Use statistical methods to make an inference;91265|2.10|Conduct an experiment to investigate a situation using statistical methods;91266|2.11|Evaluate a statistically based report;91267|2.12|Apply probability methods in solving problems;91268|2.13|Investigate a situation involving elements of chance using a simulation;91269|2.14|Apply systems of equations in solving problems;91573|3.1|Apply the geometry of conic sections in solving problems;91574|3.2|Apply linear programming methods in solving problems;91575|3.3|Apply trigonometric methods in solving problems;91576|3.4|Use critical path analysis in solving problems;91577|3.5|Apply the algebra of complex numbers in solving problems;91578|3.6|Apply differentiation methods in solving problems;91579|3.7|Apply integration methods in solving problems;91580|3.8|Investigate time series data;91581|3.9|Investigate bivariate measurement data;91582|3.10|Use statistical methods to make a formal inference;91583|3.11|Conduct an experiment to investigate a situation using statistical methods;91584|3.12|Evaluate statistically based reports;91585|3.13|Apply probability concepts in solving problems;91586|3.14|Apply probability distributions in solving problems;91587|3.15|Apply systems of simultaneous equations in solving problems".split(";").map(x=>x.split("|"));
 const OLD={"Pythagoras":"91032","Expanding Brackets":"91027","Quadratic Equations":"91027","Simultaneous Equations":"91029","Gradient":"91028","Trigonometry":"91032","Indices":"91027","Number Patterns":"91028","Compound Interest":"91026","Volume of Cylinders":"91030","Circle Theorems":"91031","Independent Probability":"91038","Standard Form":"91026","Differentiation":"91262","Integration":"91262 91579","Complex Numbers":"91577","Logarithms":"91261","Expected Value":"91267 91586","Arithmetic Series":"91258","Geometric Series":"91258"};
 T.forEach(t=>t.a=t.a||OLD[t.t]||"");
+const yr=t=>{const m=/^Y(\d+)/.exec(t.y);return m?+m[1]:t.y==="NZMO"?14:15};const LAD=[...T].sort((a,b)=>yr(a)-yr(b)||a.s-b.s);
+const MIST=["Rushing a column or counting wrongly. Estimate first so you can tell if your answer is sensible, and check the units.","Not doing the same thing to both sides of an equation, or mixing up which quantity a ratio part belongs to. Write each step on its own line.","Sign errors with negatives, dropping brackets when expanding, and forgetting to check answers in the original equation. Slow down on signs.","Using a rule without checking it applies (forgetting the chain rule or the limits of integration) and rounding too early. Keep exact values until the end.","Jumping to a formula instead of trying small cases, and assuming a pattern always holds. Test two or three cases, then justify why it works."];
+const USE=["Shopping, cooking, telling the time, building and measuring.","Sale prices, recipes, maps, speed, sport statistics and budgeting.","Trades, engineering, design, finance, and every science course.","Physics, economics, computer graphics, medicine and data science.","Computer science, cryptography, puzzles and competition maths."];
 function renderStd(){const L={1:"NCEA Level 1 (Year 11)",2:"NCEA Level 2 (Year 12)",3:"NCEA Level 3 (Year 13)"};
 $("std").innerHTML=[1,2,3].map(l=>`<h4 style="color:var(--cyan);margin:14px 0 8px">${L[l]}</h4><div class="nodes">`+STD.filter(s=>s[1][0]==l).map(([c,n,ti])=>{const ts=T.filter(t=>t.a.split(" ").includes(c)),m=ts.filter(t=>S.mastered[t.t]).length;return`<button class="node ${ts.length&&m===ts.length?"m":""}" style="--c:#06B6D4" title="${ti}" onclick="byStd('${c}')">${c} · ${n} · ${ti} <small>${m}/${ts.length}</small></button>`}).join("")+"</div>").join("")}
 function byStd(c){$("search").value=c;render();$("map").scrollIntoView({behavior:"smooth"})}
@@ -266,9 +270,10 @@ const fig=t=>{const f=FIGS.find(x=>x[0].test(t));return f?`<div class="fig">${f[
 const esc=x=>x.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 // ---- Engine
 const KEY="astromaths_v2",$=id=>document.getElementById(id);
-let S=load(),cur=null,Q=null;const pools={};
+function norm(o){o=o||S;o.rev=o.rev||{};o.wrong=o.wrong||[];o.pref=o.pref||{};return o}
+let S=norm(load()),cur=null,Q=null;const pools={};
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.mastered)return{att:{},best:{},...d}}catch(e){}return{xp:0,streak:0,last:"",mastered:{},att:{},best:{}}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));$("saved").textContent="💾 Progress saved"}catch(e){$("saved").textContent="⚠ Browser storage unavailable: use Export Flight Log to keep your progress"}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));$("saved").textContent="💾 Saved "+new Date().toLocaleTimeString()}catch(e){$("saved").textContent="⚠ Browser storage unavailable: use Export Flight Log to keep your progress"}}
 const cnt=s=>T.filter(t=>t.s===s&&S.mastered[t.t]).length;
 const open=s=>s===1||cnt(s-1)>=3||(S.placed&&s<=S.placed.s);
 function typeset(el){if(window.renderMathInElement)renderMathInElement(el||$("terminal"),{delimiters:[{left:"$",right:"$",display:false}],throwOnError:false})}
@@ -286,52 +291,68 @@ function render(){
 }
 function openT(i){cur=T[i];Q=null;$("terminal").style.display="block";$("tTitle").textContent=cur.t;
   $("tMeta").textContent=SECTORS[cur.s-1].name+" · "+cur.y+(cur.a?" · NCEA "+cur.a.split(" ").map(c=>{const x=STD.find(z=>z[0]===c);return"AS"+c+" ("+x[1]+")"}).join(", "):"")+(S.att[cur.t]?" · Attempts: "+S.att[cur.t]+" · Best run: "+(S.best[cur.t]||0)+"/10":"")+(S.mastered[cur.t]?" · MASTERED":"");
-  $("how").innerHTML=`<p><b style="color:var(--gold)">The big idea.</b> ${INTRO[cur.s-1]}</p><p><b style="color:var(--gold)">How to do it.</b> ${cur.d}</p>${fig(cur.t)}<b style="color:var(--gold)">Worked examples</b> <span style="color:var(--muted);font-size:.8rem">(new ones each time, answers shown)</span><div id="exs"></div><button class="btn" onclick="ex()">Show 2 more examples</button>`;ex();$("startBtn").style.display="";$("quiz").style.display="none";$("msg").textContent="";
+  $("how").innerHTML=lesson();ex();$("startBtn").style.display="";$("quiz").style.display="none";$("msg").textContent="";
   typeset();$("terminal").scrollIntoView({behavior:"smooth"})}
 function closeT(){$("terminal").style.display="none";cur=null;Q=null}
 function pool(t){if(pools[t.t])return pools[t.t];const m=new Map();for(let i=0;i<1500&&m.size<50;i++){const x=t.g();m.set(x[0],x)}return pools[t.t]=[...m.values()]}
 function startQ(){if(!cur)return;const p=pool(cur).slice().sort(()=>Math.random()-.5);Q={qs:p.slice(0,10),i:0};S.att[cur.t]=(S.att[cur.t]||0)+1;save();
   $("startBtn").style.display="none";$("quiz").style.display="block";$("retryBtn").style.display="none";$("sendBtn").style.display="";$("ans").style.display="";$("msg").textContent="";showQ()}
 function showQ(){$("qn").textContent=`Question ${Q.i+1} of ${Q.qs.length} · no mistakes allowed`;$("tQ").textContent=Q.qs[Q.i][0];$("ans").value="";$("ans").focus();typeset()}
-function parse(v){v=v.trim().replace(/\s/g,"");if(/^-?\d+(\.\d+)?\/-?\d+(\.\d+)?$/.test(v)){const[a,b]=v.split("/");return a/b}return v===""?NaN:Number(v)}
+function parse(v){v=v.trim().replace(/[\s,%°$]/g,"").replace(/^[a-zA-Z]+=/,"").replace(/[a-zA-Zπ²³]+$/,"");if(/^-?\d*\.?\d+\/-?\d*\.?\d+$/.test(v)){const[a,b]=v.split("/");return a/b}return v===""?NaN:Number(v)}
 function check(){if(!Q||$("sendBtn").style.display==="none")return;const[,a]=Q.qs[Q.i],v=parse($("ans").value),m=$("msg");
   if(isNaN(v)){m.style.color="#F87171";m.textContent="Enter a number or fraction.";return}
-  if(Math.abs(v-a)>0.0051){m.style.color="#F87171";m.textContent=`Incorrect. The answer was ${Math.round(a*1000)/1000}. Review the lesson above, then retry with 10 new questions.`;
+  if(Math.abs(v-a)>0.0051){noteWrong(cur.t,Q.qs[Q.i]);m.style.color="#F87171";m.textContent=`Incorrect. The answer was ${Math.round(a*1000)/1000}. Review the lesson above, then retry with 10 new questions.`;
     $("sendBtn").style.display="none";$("ans").style.display="none";$("retryBtn").style.display="";return}
   m.textContent="";Q.i++;S.best[cur.t]=Math.max(S.best[cur.t]||0,Q.i);save();
   if(Q.i<Q.qs.length)return showQ();
   $("quiz").style.display="none";m.style.color="var(--green)";
-  if(!S.mastered[cur.t]){S.mastered[cur.t]=new Date().toISOString();S.xp+=100;m.textContent="🏆 Topic mastered! +100 XP"}else m.textContent="🏆 Passed again. Already mastered.";
+  if(!S.mastered[cur.t]){S.mastered[cur.t]=new Date().toISOString();S.xp+=100;m.textContent="🏆 Topic mastered! +100 XP"}else m.textContent="🏆 Passed again. Review stage up!";{const r=S.rev[cur.t]||{n:-1};r.n=Math.min(r.n+1,4);r.due=Date.now()+[1,3,7,14,30][r.n]*864e5;S.rev[cur.t]=r}
   streak();save();render();$("tMeta").textContent+=" · MASTERED";Q=null}
 function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function streak(){const n=new Date(),t=ymd(n);if(S.last===t)return;const y=new Date(n);y.setDate(y.getDate()-1);S.streak=S.last===ymd(y)?S.streak+1:1;S.last=t}
 function exportLog(){const b=new Blob([JSON.stringify({app:"AstroMaths",version:2,data:S},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="astromaths-flight-log-"+ymd(new Date())+".json";a.click();URL.revokeObjectURL(a.href)}
-$("imp").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result),d=j.data||j;if(typeof d.xp!=="number"||typeof d.mastered!=="object")throw 0;S={xp:d.xp,streak:d.streak||0,last:d.last||"",mastered:d.mastered,att:d.att||{},best:d.best||{},placed:d.placed};save();render();closeT();alert("Flight log imported.")}catch(x){alert("Invalid flight log file (v1 logs are not compatible).")}};r.readAsText(f);e.target.value=""});
-function resetAll(){if(confirm("Erase all progress on this device?")){S={xp:0,streak:0,last:"",mastered:{},att:{},best:{}};save();render();closeT();startExam()}}
+$("imp").addEventListener("change",e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result),d=j.data||j;if(typeof d.xp!=="number"||typeof d.mastered!=="object")throw 0;S={xp:d.xp,streak:d.streak||0,last:d.last||"",mastered:d.mastered,att:d.att||{},best:d.best||{},placed:d.placed,exam:d.exam,rev:d.rev,wrong:d.wrong,pref:d.pref};norm();save();render();closeT();alert("Flight log imported.")}catch(x){alert("Invalid flight log file (v1 logs are not compatible).")}};r.readAsText(f);e.target.value=""});
+function resetAll(){if(confirm("Erase all progress on this device?")){S={xp:0,streak:0,last:"",mastered:{},att:{},best:{}};norm();save();render();closeT();startExam()}}
 $("ans").addEventListener("keydown",e=>{if(e.key==="Enter")check()});
 $("search").addEventListener("input",render);addEventListener("pagehide",save);
-function ex(){if(!cur)return;$("exs").innerHTML=[0,1].map(()=>{const[q,a]=cur.g();return`<div class="ex">${esc(q)}<br><b style="color:var(--green)">Answer: ${Math.round(a*1000)/1000}</b></div>`}).join("");typeset($("how"))}
-function rec(){const p=S.placed;if(!p){$("rec").innerHTML="";return}const sec=SECTORS[p.s-1],L=[...new Set([...p.weak,...T.filter(t=>t.s===p.s).map(t=>t.t)])].filter(w=>!S.mastered[w]).slice(0,6);
-$("rec").innerHTML=`<div class="panel" style="border-color:var(--gold)"><b style="color:var(--gold)">Recommended start: ${sec.name}</b> (${sec.yrs})${p.sc.length?" · Placement scores: "+p.sc.map((x,i)=>"S"+(i+1)+" "+x+"/4").join(", "):" · Exam skipped"}<br><span style="color:var(--muted);font-size:.85rem">Start with:</span> `+L.map(w=>`<button class="node" style="--c:#F59E0B" onclick="openT(${T.findIndex(t=>t.t===w)})">${w}</button>`).join(" ")+` <button class="btn" onclick="startExam()">Retake exam</button></div>`}
-let X=null;
+function ex(){if(!cur)return;$("exs").innerHTML=[0,1,2].map(()=>{const[q,a]=cur.g();return`<div class="ex">${esc(q)}<br><b style="color:var(--green)">Answer: ${Math.round(a*1000)/1000}</b></div>`}).join("");typeset($("how"))}
+const hd=x=>`<b style="color:var(--gold)">${x}</b>`;
+function lesson(){const i=LAD.indexOf(cur),pre=LAD.slice(Math.max(0,i-2),i),nx=LAD[i+1],b=t=>`<button class="node" style="--c:#06B6D4" onclick="openT(${T.indexOf(t)})">${esc(t.t)}<small>${t.y}</small></button>`;
+return`<p>${hd("The big idea.")} ${INTRO[cur.s-1]}</p><p>${hd("How to do it.")} ${cur.d}</p>${fig(cur.t)}${pre.length?`<p>${hd("Before you start")} (build these first if this feels hard): ${pre.map(b).join(" ")}</p>`:""}<p>${hd("Common mistakes.")} ${MIST[cur.s-1]}</p><p>${hd("Where you will use it.")} ${USE[cur.s-1]}</p>${hd("Worked examples")} <span style="color:var(--muted);font-size:.8rem">(new ones each time, answers shown)</span><div id="exs"></div><div class="row"><button class="btn" onclick="ex()">Show 3 more examples</button><button class="btn" onclick="pq()">Practice a question</button></div><div id="pr"></div>${nx?`<p>${hd("Next up:")} ${b(nx)}</p>`:""}`}
+let PQ;
+function pq(){PQ=cur.g();$("pr").innerHTML=`<div class="ex">${esc(PQ[0])}<br><input type="text" id="pa" placeholder="Your answer"> <button class="btn" onclick="pc()">Check</button> <button class="btn" onclick="pv()">Reveal answer</button><div id="pm" style="margin-top:6px;font-weight:600"></div></div>`;typeset($("pr"))}
+function pc(){const v=parse($("pa").value),ok=Math.abs(v-PQ[1])<=0.0051;$("pm").style.color=ok?"var(--green)":"#F87171";$("pm").textContent=ok?"Correct! Try another, or start the challenge.":"Not quite. Re-read the how-to and examples, then try again."}
+function pv(){$("pm").style.color="var(--gold)";$("pm").textContent="Answer: "+Math.round(PQ[1]*1000)/1000;noteWrong(cur.t,PQ)}
+function noteWrong(t,q){S.wrong.unshift({t,q:q[0],a:Math.round(q[1]*1000)/1000});S.wrong.length=Math.min(S.wrong.length,40);save()}
+function setPref(k,d){if(k==="fs")S.pref.fs=Math.min(150,Math.max(80,(S.pref.fs||100)+d));else S.pref.rm=!S.pref.rm;save();applyPref()}
+function applyPref(){document.documentElement.style.fontSize=(S.pref.fs||100)+"%";document.body.classList.toggle("rm",!!S.pref.rm)}
+function rec(){const now=Date.now(),due=Object.keys(S.rev).filter(k=>S.rev[k].due<=now&&T.some(t=>t.t===k)),p=S.placed;let h="";
+if(p){const base=p.i!=null?p.i:Math.max(0,LAD.findIndex(t=>t.s===p.s)),sec=SECTORS[p.s-1],L=[...new Set([...(p.f||p.weak||[]),...LAD.slice(base).map(t=>t.t)])].filter(w=>!S.mastered[w]).slice(0,6);
+h+=`<div class="panel" style="border-color:var(--gold)">${hd("Your level: "+LAD[base].y+" · "+sec.name)}${p.n?" · Exam: "+p.n+" questions answered"+(p.live?" (in progress)":""):" · Exam skipped"}<br><span style="color:var(--muted);font-size:.85rem">Start with:</span> `+L.map(w=>`<button class="node" style="--c:#F59E0B" onclick="openT(${T.findIndex(t=>t.t===w)})">${esc(w)}</button>`).join(" ")+` <button class="btn" onclick="startExam()">Retake exam</button></div>`}
+if(S.exam&&!S.exam.done&&S.exam.i>0)h+=`<div class="panel" style="border-color:var(--green);margin-bottom:12px">${hd("Exam in progress")} · question ${S.exam.i+1} of ${LAD.length} <button class="btn go" onclick="resumeX()">Resume exam</button></div>`;
+if(due.length)h+=`<div class="panel" style="border-color:var(--cyan);margin-top:12px">${hd("🔁 Spaced review due ("+due.length+")")} <span style="color:var(--muted);font-size:.85rem">Re-pass these challenges to lock them into long-term memory:</span> `+due.slice(0,8).map(w=>`<button class="node" style="--c:#06B6D4" onclick="openT(${T.findIndex(t=>t.t===w)})">${esc(w)}</button>`).join(" ")+`</div>`;
+$("rec").innerHTML=h;
+$("nb").innerHTML=S.wrong.length?S.wrong.map(w=>`<div class="ex"><small style="color:var(--muted)">${esc(w.t)}</small><br>${esc(w.q)}<br><b style="color:var(--green)">Answer: ${w.a}</b></div>`).join("")+`<button class="btn" onclick="S.wrong=[];save();render()">Clear notebook</button>`:'<p style="color:var(--muted)">No mistakes recorded yet. Missed challenge, exam and practice questions will appear here.</p>';typeset($("nb"))}
+let X=null,E=null;
 function showE(i){["e0","e1","e2"].forEach((e,j)=>$(e).style.display=j===i?"":"none")}
-function startExam(){$("exam").style.display="flex";showE(0)}
-function skipE(){S.placed={s:1,sc:[],weak:[],date:new Date().toISOString()};save();$("exam").style.display="none";render()}
-function beginE(){X={s:1,sc:[],weak:[]};sectorE();showE(1)}
-function sectorE(){X.qs=T.filter(t=>t.s===X.s).sort(()=>Math.random()-.5).slice(0,4).map(t=>({t,q:t.g()}));X.i=0;X.ok=0;askE()}
-function askE(){$("eqn").textContent=`Sector ${X.s} of 5 · question ${X.i+1} of 4`;$("eq").textContent=X.qs[X.i].q[0];$("eans").value="";$("eans").focus();typeset($("exam"))}
-function ansE(skip){const q=X.qs[X.i],v=parse($("eans").value);
- if(!skip&&isNaN(v)){$("eans").placeholder="Enter a number or fraction";return}
- if(!skip&&Math.abs(v-q.q[1])<=0.0051)X.ok++;else X.weak.push(q.t.t);
- if(++X.i<4)return askE();
- X.sc.push(X.ok);if(X.ok<3||X.s===5)return finishE();X.s++;sectorE()}
-function finishE(){const sec=SECTORS[X.s-1];S.placed={s:X.s,sc:X.sc,weak:[...new Set(X.weak)],date:new Date().toISOString()};save();
- $("e2").innerHTML=`<h3 style="color:var(--gold);margin:0 0 8px">Exam complete</h3><p style="line-height:1.6">Your starting point is <b>${sec.name}</b> (${sec.yrs}). Scores: ${X.sc.map((x,i)=>"Sector "+(i+1)+": "+x+"/4").join(", ")}. Sectors up to this one are unlocked, and your missed topics are listed as a recommended start. Your result is saved, and you can retake the exam from the footer.</p><button class="btn go" onclick="$('exam').style.display='none';render()">Begin training</button>`;showE(2)}
+function startExam(){$("exam").style.display="flex";showE(0);$("resBtn").style.display=S.exam&&!S.exam.done&&S.exam.i>0?"":"none"}
+function skipE(){S.placed={s:1,i:0,f:[],n:0};S.exam=null;save();$("exam").style.display="none";render()}
+function sync(stop){const L=LAD.length,reach=Math.max(0,Math.min(L-1,stop?X.i-1:X.i)),ff=X.f.length?LAD.findIndex(t=>t.t===X.f[0]):-1;
+ S.exam=X;S.placed={s:LAD[reach].s,i:ff>=0?ff:reach,f:X.f.slice(),n:X.i,live:!X.done};save()}
+function beginE(){X={i:0,f:[],done:false};sync();askE();showE(1)}
+function resumeE(){X=S.exam;askE();showE(1)}
+function resumeX(){$("exam").style.display="flex";resumeE()}
+function askE(){const t=LAD[X.i];E={t,q:t.g()};$("eqn").textContent=`Question ${X.i+1} of ${LAD.length} · mistakes ${X.f.length} of 3`;$("eq").textContent=E.q[0];$("eans").value="";$("eans").focus();typeset($("exam"))}
+function ansE(skip){const v=parse($("eans").value);if(!skip&&isNaN(v)){$("eans").placeholder="Enter a number or fraction";return}
+ if(skip||Math.abs(v-E.q[1])>0.0051){X.f.push(E.t.t);noteWrong(E.t.t,E.q)}
+ X.i++;const stop=X.f.length>=3||X.i>=LAD.length;if(stop)X.done=true;sync(stop);if(stop)return finishE();askE()}
+function finishE(){const p=S.placed,sec=SECTORS[p.s-1],hard=X.f.length>=3;
+ $("e2").innerHTML=`<h3 style="color:var(--gold);margin:0 0 8px">${hard?"Exam complete":"You reached the end: IMO level!"}</h3><p style="line-height:1.6">You answered ${X.i} questions${hard?" and stopped after 3 mistakes":" without reaching 3 mistakes"}. Sectors 1 to ${p.s} are now unlocked (up to <b>${sec.name}</b>). ${X.f.length?"Topics you missed are at the top of your recommended start list and in your Mistake Notebook.":"Perfect run!"} Everything is saved, and you can retake the exam from the footer at any time.</p><button class="btn go" onclick="$('exam').style.display='none';render()">Begin training</button>`;showE(2)}
 $("eans").addEventListener("keydown",e=>{if(e.key==="Enter")ansE(0)});
 (function(){const c=$("stars"),x=c.getContext("2d");let st=[];function rs(){c.width=innerWidth;c.height=innerHeight;st=Array.from({length:140},()=>({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*1.3+.2,p:Math.random()*6,col:P(["#fff","#6366F1","#06B6D4","#F59E0B"])}))}
-function f(t){x.clearRect(0,0,c.width,c.height);st.forEach(s=>{x.globalAlpha=.4+.6*Math.abs(Math.sin(t/1500+s.p));x.fillStyle=s.col;x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fill()});requestAnimationFrame(f)}
+function f(t){x.clearRect(0,0,c.width,c.height);st.forEach(s=>{x.globalAlpha=S.pref.rm?.7:.4+.6*Math.abs(Math.sin(t/1500+s.p));x.fillStyle=s.col;x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fill()});requestAnimationFrame(f)}
 addEventListener("resize",rs);rs();requestAnimationFrame(f)})();
-render();if(!S.placed)startExam();
+render();applyPref();if(!S.placed)startExam();
 </script>
 </body>
 </html>
